@@ -524,6 +524,36 @@ tbody tr:last-child td { border-bottom: none; }
   .item-row { grid-template-columns: 1fr 1fr; }
   .item-row .remove-item { width: 100%; }
   .doc-parties, .doc-signatures { grid-template-columns: 1fr; }
+
+  /* tablas en formato tarjeta para iPhone */
+  .table-wrap table { min-width: 0; width: 100%; }
+  .table-wrap thead { display: none; }
+  .table-wrap tbody tr {
+    display: block;
+    margin: 10px 10px 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface2);
+  }
+  .table-wrap tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(42,45,62,.45);
+    font-size: .8rem;
+  }
+  .table-wrap tbody td:last-child { border-bottom: 0; }
+  .table-wrap tbody td::before {
+    content: attr(data-label);
+    color: var(--text-muted);
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    flex: 0 0 42%;
+  }
+  .actions, .filter-tabs { width: 100%; }
 }
 </style>
 </head>
@@ -939,6 +969,18 @@ function refreshAll() {
   renderDashboardTable();
   renderOrdersTable();
   renderClientsTable();
+  applyResponsiveTableLabels();
+}
+
+function applyResponsiveTableLabels() {
+  document.querySelectorAll('.table-wrap table').forEach(table => {
+    const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+    table.querySelectorAll('tbody tr').forEach(row => {
+      row.querySelectorAll('td').forEach((td, i) => {
+        td.setAttribute('data-label', headers[i] || 'Campo');
+      });
+    });
+  });
 }
 
 function updateStats() {
@@ -1054,6 +1096,7 @@ function searchOrders(q) {
       <td><button class="action-btn action-view" onclick="viewOrder('${o.id}')">Detalle</button></td>
     </tr>
   `).join('');
+  applyResponsiveTableLabels();
 }
 
 // ─── NEW ORDER ───
