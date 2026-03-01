@@ -105,8 +105,16 @@ body {
   display: none;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   margin-bottom: 14px;
+}
+
+.mobile-topbar .muted {
+  font-size: .8rem;
+  max-width: calc(100vw - 90px);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mobile-menu-btn {
@@ -508,7 +516,10 @@ tbody tr:last-child td { border-bottom: none; }
 @media (max-width: 860px) {
   .sidebar { transform: translateX(-100%); box-shadow: 0 20px 40px rgba(0,0,0,.45); }
   .sidebar.open { transform: translateX(0); }
-  .main { margin-left: 0; padding: 20px 14px; }
+  .main {
+    margin-left: 0;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  }
   .mobile-topbar { display: flex; }
   .detail-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -641,7 +652,7 @@ tbody tr:last-child td { border-bottom: none; }
       <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Abrir menú">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <div class="muted">OrderFlow · Menú</div>
+      <div class="muted">OrderFlow</div>
     </div>
 
     <!-- ========== DASHBOARD ========== -->
