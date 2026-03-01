@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrderFlow — Gestión de Pedidos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117;
+  --surface: #181a23;
+  --surface2: #1e2130;
+  --border: #2a2d3e;
+  --text: #e8e9ed;
+  --text-muted: #8b8fa3;
+  --accent: #6366f1;
+  --accent-glow: rgba(99,102,241,.25);
+  --green: #22c55e;
+  --green-glow: rgba(34,197,94,.2);
+  --amber: #f59e0b;
+  --amber-glow: rgba(245,158,11,.2);
+  --red: #ef4444;
+  --red-glow: rgba(239,68,68,.15);
+  --blue: #3b82f6;
+  --blue-glow: rgba(59,130,246,.2);
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,.3);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── SIDEBAR ─── */
+.layout { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 260px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  transition: transform .3s;
+}
+
+.logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  letter-spacing: -.5px;
+  margin-bottom: 6px;
+}
+
+.logo span { color: var(--accent); }
+
+.logo-sub { font-size: .72rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 36px; }
+
+.nav-section { font-size: .65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin: 20px 0 10px; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 14px; border-radius: var(--radius-sm);
+  cursor: pointer; font-size: .88rem; font-weight: 500;
+  color: var(--text-muted); transition: all .2s;
+  margin-bottom: 2px;
+}
+.nav-item:hover { color: var(--text); background: var(--surface2); }
+.nav-item.active { color: #fff; background: var(--accent); box-shadow: 0 2px 12px var(--accent-glow); }
+
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 16px 14px;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; gap: 12px;
+}
+
+.avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #a78bfa);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: .85rem; color: #fff;
+  flex-shrink: 0;
+}
+
+.user-name { font-weight: 600; font-size: .85rem; }
+.user-role { font-size: .72rem; color: var(--text-muted); }
+
+/* ─── MAIN ─── */
+.main { margin-left: 260px; flex: 1; padding: 32px 36px; }
+
+.page { display: none; }
+.page.active { display: block; animation: fadeUp .4s ease; }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.page-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.page-title { font-family: 'Playfair Display', serif; font-size: 1.7rem; }
+.page-subtitle { font-size: .85rem; color: var(--text-muted); margin-top: 4px; }
+
+/* ─── STAT CARDS ─── */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(4,1fr); gap: 16px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  position: relative; overflow: hidden;
+  transition: transform .2s, box-shadow .2s;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+
+.stat-card::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.stat-card.blue::before { background: var(--blue); }
+.stat-card.amber::before { background: var(--amber); }
+.stat-card.green::before { background: var(--green); }
+.stat-card.accent::before { background: var(--accent); }
+
+.stat-label { font-size: .75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.stat-value { font-size: 1.9rem; font-weight: 700; margin: 6px 0 2px; }
+.stat-change { font-size: .78rem; }
+.stat-change.up { color: var(--green); }
+.stat-change.down { color: var(--red); }
+
+/* ─── BUTTONS ─── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: .85rem; font-weight: 600;
+  border: none; cursor: pointer; transition: all .2s;
+}
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 12px var(--accent-glow); }
+.btn-primary:hover { background: #5558e6; transform: translateY(-1px); }
+.btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-green { background: var(--green); color: #fff; box-shadow: 0 2px 12px var(--green-glow); }
+.btn-green:hover { background: #1aab52; }
+.btn-sm { padding: 7px 14px; font-size: .78rem; }
+.btn svg { width: 16px; height: 16px; }
+
+/* ─── TABLE ─── */
+.table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px; border-bottom: 1px solid var(--border);
+}
+
+.table-title { font-weight: 600; font-size: .95rem; }
+
+.search-box {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 14px;
+}
+.search-box input {
+  background: transparent; border: none; outline: none;
+  color: var(--text); font-family: inherit; font-size: .82rem;
+  width: 180px;
+}
+.search-box svg { width: 15px; height: 15px; color: var(--text-muted); }
+
+table { width: 100%; border-collapse: collapse; }
+thead th {
+  text-align: left; padding: 14px 24px;
+  font-size: .72rem; text-transform: uppercase;
+  letter-spacing: 1.5px; color: var(--text-muted);
+  border-bottom: 1px solid var(--border); font-weight: 600;
+}
+tbody td {
+  padding: 16px 24px; font-size: .85rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+tbody tr { transition: background .15s; }
+tbody tr:hover { background: var(--surface2); }
+tbody tr:last-child td { border-bottom: none; }
+
+/* ─── BADGES ─── */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px; border-radius: 20px;
+  font-size: .75rem; font-weight: 600;
+}
+.badge::before {
+  content: ''; width: 7px; height: 7px; border-radius: 50%;
+}
+.badge-pending { background: var(--amber-glow); color: var(--amber); }
+.badge-pending::before { background: var(--amber); }
+.badge-progress { background: var(--blue-glow); color: var(--blue); }
+.badge-progress::before { background: var(--blue); }
+.badge-ready { background: var(--green-glow); color: var(--green); }
+.badge-ready::before { background: var(--green); }
+.badge-delivered { background: rgba(139,143,163,.15); color: var(--text-muted); }
+.badge-delivered::before { background: var(--text-muted); }
+.badge-cancelled { background: var(--red-glow); color: var(--red); }
+.badge-cancelled::before { background: var(--red); }
+
+/* ─── PROGRESS BAR ─── */
+.progress-track {
+  width: 100%; height: 6px; background: var(--surface2);
+  border-radius: 3px; overflow: hidden;
+}
+.progress-fill { height: 100%; border-radius: 3px; transition: width .5s ease; }
+
+/* ─── MODAL ─── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.6); backdrop-filter: blur(6px);
+  z-index: 500; align-items: center; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 580px; max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  animation: modalIn .3s ease;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 24px 28px; border-bottom: 1px solid var(--border);
+}
+.modal-title { font-weight: 700; font-size: 1.05rem; }
+.modal-close {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--surface2); border: none;
+  color: var(--text-muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+}
+.modal-close:hover { background: var(--red-glow); color: var(--red); }
+
+.modal-body { padding: 24px 28px; }
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 18px 28px; border-top: 1px solid var(--border);
+}
+
+/* ─── FORMS ─── */
+.form-group { margin-bottom: 18px; }
+.form-label {
+  display: block; font-size: .78rem; font-weight: 600;
+  color: var(--text-muted); margin-bottom: 7px;
+  text-transform: uppercase; letter-spacing: .5px;
+}
+.form-input, .form-select, .form-textarea {
+  width: 100%; padding: 11px 14px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: inherit; font-size: .85rem;
+  transition: border-color .2s;
+}
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+.form-textarea { min-height: 80px; resize: vertical; }
+.form-select { cursor: pointer; }
+.form-select option { background: var(--surface); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ─── ITEMS LIST ─── */
+.items-list { margin: 12px 0; }
+.item-row {
+  display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 40px; gap: 10px;
+  align-items: center; margin-bottom: 8px;
+}
+.item-row .form-input { padding: 9px 12px; font-size: .82rem; }
+.remove-item {
+  width: 32px; height: 32px; border-radius: 6px;
+  background: var(--red-glow); border: none;
+  color: var(--red); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; transition: all .2s;
+}
+.remove-item:hover { background: var(--red); color: #fff; }
+
+.add-item-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px; background: transparent;
+  border: 1px dashed var(--border); border-radius: var(--radius-sm);
+  color: var(--accent); font-family: inherit;
+  font-size: .8rem; font-weight: 600; cursor: pointer;
+  transition: all .2s;
+}
+.add-item-btn:hover { border-color: var(--accent); background: var(--accent-glow); }
+
+.total-row {
+  display: flex; justify-content: flex-end; gap: 20px;
+  padding: 14px 0; font-weight: 700; font-size: .95rem;
+}
+
+/* ─── ORDER DETAIL ─── */
+.detail-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; }
+
+.detail-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.detail-card-title {
+  font-weight: 700; font-size: .95rem; margin-bottom: 18px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+
+.info-row {
+  display: flex; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid rgba(42,45,62,.4);
+  font-size: .85rem;
+}
+.info-row:last-child { border-bottom: none; }
+.info-label { color: var(--text-muted); }
+.info-value { font-weight: 600; }
+
+/* ─── TIMELINE ─── */
+.timeline { padding: 8px 0; }
+.timeline-item {
+  display: flex; gap: 16px; padding-bottom: 24px;
+  position: relative;
+}
+.timeline-item:last-child { padding-bottom: 0; }
+.timeline-item::before {
+  content: '';
+  position: absolute; left: 15px; top: 32px;
+  bottom: 0; width: 2px; background: var(--border);
+}
+.timeline-item:last-child::before { display: none; }
+
+.timeline-dot {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: .75rem;
+}
+.timeline-dot.done { background: var(--green-glow); color: var(--green); }
+.timeline-dot.current { background: var(--blue-glow); color: var(--blue); animation: pulse 2s infinite; }
+.timeline-dot.pending { background: var(--surface2); color: var(--text-muted); }
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--blue-glow); }
+  50% { box-shadow: 0 0 0 8px transparent; }
+}
+
+.timeline-content { flex: 1; }
+.timeline-title { font-weight: 600; font-size: .88rem; }
+.timeline-desc { font-size: .78rem; color: var(--text-muted); margin-top: 3px; }
+.timeline-date { font-size: .72rem; color: var(--text-muted); margin-top: 2px; }
+
+/* ─── DELIVERY DOC ─── */
+.delivery-doc {
+  display: none;
+  background: #fff; color: #1a1a2e;
+  padding: 48px; max-width: 800px; margin: 0 auto;
+  font-family: 'DM Sans', sans-serif;
+}
+.delivery-doc.printing { display: block; }
+
+.doc-header {
+  display: flex; justify-content: space-between;
+  align-items: flex-start; margin-bottom: 36px;
+  padding-bottom: 24px; border-bottom: 3px solid #6366f1;
+}
+.doc-company { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: #6366f1; }
+.doc-subtitle { font-size: .8rem; color: #666; margin-top: 4px; }
+.doc-number { text-align: right; }
+.doc-number strong { font-size: 1.1rem; display: block; }
+.doc-number span { font-size: .82rem; color: #666; }
+
+.doc-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px; }
+.doc-party h4 { font-size: .72rem; text-transform: uppercase; letter-spacing: 1px; color: #6366f1; margin-bottom: 8px; }
+.doc-party p { font-size: .85rem; line-height: 1.6; color: #444; }
+
+.doc-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+.doc-table th {
+  background: #f0f0ff; padding: 12px 16px;
+  text-align: left; font-size: .75rem;
+  text-transform: uppercase; letter-spacing: 1px;
+  color: #6366f1; border-bottom: 2px solid #e0e0f0;
+}
+.doc-table td {
+  padding: 12px 16px; font-size: .85rem;
+  border-bottom: 1px solid #eee; color: #333;
+}
+.doc-table .text-right { text-align: right; }
+
+.doc-total {
+  text-align: right; margin-bottom: 32px;
+  font-size: 1.1rem; font-weight: 700; color: #1a1a2e;
+}
+
+.doc-signatures {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 48px;
+  margin-top: 60px; padding-top: 24px;
+}
+.doc-sig-line { border-top: 1px solid #ccc; padding-top: 10px; text-align: center; }
+.doc-sig-line p { font-size: .82rem; color: #666; }
+.doc-sig-line strong { font-size: .85rem; color: #333; display: block; margin-top: 4px; }
+
+/* ─── FILTER TABS ─── */
+.filter-tabs { display: flex; gap: 6px; }
+.filter-tab {
+  padding: 7px 16px; border-radius: 20px;
+  font-size: .78rem; font-weight: 600;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text-muted); cursor: pointer;
+  transition: all .2s; font-family: inherit;
+}
+.filter-tab.active, .filter-tab:hover {
+  background: var(--accent); color: #fff;
+  border-color: var(--accent);
+}
+
+/* ─── ACTION BUTTONS IN TABLE ─── */
+.action-btn {
+  padding: 6px 12px; border-radius: 6px;
+  font-size: .75rem; font-weight: 600;
+  border: none; cursor: pointer; font-family: inherit;
+  transition: all .2s;
+}
+.action-view { background: var(--accent-glow); color: var(--accent); }
+.action-view:hover { background: var(--accent); color: #fff; }
+.action-advance { background: var(--green-glow); color: var(--green); }
+.action-advance:hover { background: var(--green); color: #fff; }
+
+/* ─── TOAST ─── */
+.toast {
+  position: fixed; bottom: 30px; right: 30px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 24px;
+  box-shadow: 0 10px 40px rgba(0,0,0,.4);
+  display: flex; align-items: center; gap: 12px;
+  transform: translateY(100px); opacity: 0;
+  transition: all .4s ease; z-index: 600;
+  font-size: .88rem; font-weight: 500;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast-icon { font-size: 1.2rem; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 860px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; padding: 24px 18px; }
+  .detail-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .modal { width: 95%; margin: 0 10px; }
+  .item-row { grid-template-columns: 2fr 1fr 1fr 1fr 36px; font-size: .78rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo">Order<span>Flow</span></div>
+    <div class="logo-sub">Gestión de Pedidos</div>
+
+    <div class="nav-section">Principal</div>
+    <div class="nav-item active" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item" data-page="orders">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
+      Pedidos
+    </div>
+
+    <div class="nav-section">Gestión</div>
+    <div class="nav-item" data-page="clients">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      Clientes
+    </div>
+    <div class="nav-item" data-page="services">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Servicios
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="avatar">CM</div>
+      <div>
+        <div class="user-name">Carlos Méndez</div>
+        <div class="user-role">Administrador</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ========== DASHBOARD ========== -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-subtitle">Resumen general de pedidos y operaciones</div>
+        </div>
+        <button class="btn btn-primary" onclick="openNewOrder()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuevo Pedido
+        </button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card blue">
+          <div class="stat-label">Total Pedidos</div>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-change up">Este mes</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="stat-label">En Proceso</div>
+          <div class="stat-value" id="stat-progress">0</div>
+          <div class="stat-change">Activos</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Listos p/ Entrega</div>
+          <div class="stat-value" id="stat-ready">0</div>
+          <div class="stat-change up">Disponibles</div>
+        </div>
+        <div class="stat-card accent">
+          <div class="stat-label">Monto Total</div>
+          <div class="stat-value" id="stat-revenue">$0</div>
+          <div class="stat-change up">Acumulado</div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Pedidos Recientes</div>
+          <div class="filter-tabs">
+            <button class="filter-tab active" onclick="filterOrders('all', this)">Todos</button>
+            <button class="filter-tab" onclick="filterOrders('Pendiente', this)">Pendientes</button>
+            <button class="filter-tab" onclick="filterOrders('En Proceso', this)">En Proceso</button>
+            <button class="filter-tab" onclick="filterOrders('Listo', this)">Listos</button>
+            <button class="filter-tab" onclick="filterOrders('Entregado', this)">Entregados</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Cliente</th>
+              <th>Tipo</th>
+              <th>Monto</th>
+              <th>Estado</th>
+              <th>Progreso</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="orders-table-body">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========== ORDERS PAGE ========== -->
+    <div class="page" id="page-orders">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Gestión de Pedidos</div>
+          <div class="page-subtitle">Administra y da seguimiento a todos los pedidos</div>
+        </div>
+        <button class="btn btn-primary" onclick="openNewOrder()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nuevo Pedido
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="search-box">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" placeholder="Buscar pedidos..." oninput="searchOrders(this.value)">
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Pedido</th>
+              <th>Cliente</th>
+              <th>Tipo</th>
+              <th>Items</th>
+              <th>Monto</th>
+              <th>Estado</th>
+              <th>Fecha</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="orders-full-table">
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========== ORDER DETAIL ========== -->
+    <div class="page" id="page-detail">
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="detail-title">Pedido #001</div>
+          <div class="page-subtitle" id="detail-subtitle">Detalle del pedido</div>
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-outline" onclick="navigateTo('orders')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><polyline points="15 18 9 12 15 6"/></svg>
+            Volver
+          </button>
+          <button class="btn btn-green" id="btn-advance" onclick="advanceOrder()">
+            Avanzar Etapa
+          </button>
+          <button class="btn btn-primary" id="btn-delivery" style="display:none" onclick="generateDeliveryDoc()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            Generar Documento de Entrega
+          </button>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <div>
+          <div class="detail-card" style="margin-bottom:20px">
+            <div class="detail-card-title">Información del Pedido</div>
+            <div id="detail-info"></div>
+          </div>
+          <div class="detail-card">
+            <div class="detail-card-title">Ítems del Pedido</div>
+            <table style="width:100%; border-collapse:collapse;">
+              <thead>
+                <tr>
+                  <th style="text-align:left;padding:10px 0;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border)">Descripción</th>
+                  <th style="text-align:center;padding:10px 0;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border)">Cant.</th>
+                  <th style="text-align:right;padding:10px 0;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border)">P. Unit.</th>
+                  <th style="text-align:right;padding:10px 0;font-size:.72rem;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border)">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody id="detail-items"></tbody>
+            </table>
+            <div class="total-row" id="detail-total"></div>
+          </div>
+        </div>
+        <div>
+          <div class="detail-card">
+            <div class="detail-card-title">Seguimiento de Estado</div>
+            <div class="timeline" id="detail-timeline"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== CLIENTS PAGE ========== -->
+    <div class="page" id="page-clients">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Clientes</div>
+          <div class="page-subtitle">Directorio de clientes registrados</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Cliente</th><th>Email</th><th>Teléfono</th><th>Pedidos</th></tr>
+          </thead>
+          <tbody id="clients-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========== SERVICES PAGE ========== -->
+    <div class="page" id="page-services">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Servicios & Productos</div>
+          <div class="page-subtitle">Catálogo de bienes y servicios disponibles</div>
+        </div>
+      </div>
+      <div class="stats-grid" style="grid-template-columns: repeat(3,1fr);">
+        <div class="stat-card blue">
+          <div class="stat-label">Productos</div>
+          <div class="stat-value">12</div>
+        </div>
+        <div class="stat-card green">
+          <div class="stat-label">Servicios</div>
+          <div class="stat-value">8</div>
+        </div>
+        <div class="stat-card accent">
+          <div class="stat-label">Categorías</div>
+          <div class="stat-value">5</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Nombre</th><th>Tipo</th><th>Precio</th><th>Categoría</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Desarrollo Web</td><td><span class="badge badge-progress">Servicio</span></td><td>$2,500.00</td><td>Tecnología</td></tr>
+            <tr><td>Diseño de Logo</td><td><span class="badge badge-progress">Servicio</span></td><td>$800.00</td><td>Diseño</td></tr>
+            <tr><td>Hosting Anual</td><td><span class="badge badge-ready">Producto</span></td><td>$350.00</td><td>Tecnología</td></tr>
+            <tr><td>Consultoría TI</td><td><span class="badge badge-progress">Servicio</span></td><td>$150.00/hr</td><td>Consultoría</td></tr>
+            <tr><td>Licencia Software</td><td><span class="badge badge-ready">Producto</span></td><td>$1,200.00</td><td>Tecnología</td></tr>
+            <tr><td>Mantenimiento Mensual</td><td><span class="badge badge-progress">Servicio</span></td><td>$600.00</td><td>Soporte</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ========== NEW ORDER MODAL ========== -->
+<div class="modal-overlay" id="modal-new-order">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">Nuevo Pedido</div>
+      <button class="modal-close" onclick="closeModal('modal-new-order')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Cliente</label>
+          <select class="form-select" id="order-client">
+            <option value="">Seleccionar cliente...</option>
+            <option>María García — Innovatech S.A.</option>
+            <option>Roberto Fernández — LogiPro Corp.</option>
+            <option>Ana Martínez — DigitalWave</option>
+            <option>Luis Herrera — Grupo Meridian</option>
+            <option>Carmen Ruiz — SolTech Solutions</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Tipo</label>
+          <select class="form-select" id="order-type">
+            <option value="">Seleccionar tipo...</option>
+            <option>Bien / Producto</option>
+            <option>Servicio</option>
+            <option>Mixto</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Descripción del Pedido</label>
+        <textarea class="form-textarea" id="order-desc" placeholder="Descripción general del pedido..."></textarea>
+      </div>
+
+      <label class="form-label" style="margin-bottom:10px;">Ítems del Pedido</label>
+      <div class="item-row" style="margin-bottom:6px;">
+        <span style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Descripción</span>
+        <span style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Cantidad</span>
+        <span style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">P. Unitario</span>
+        <span style="font-size:.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px">Subtotal</span>
+        <span></span>
+      </div>
+      <div class="items-list" id="items-list">
+        <div class="item-row">
+          <input class="form-input item-desc" placeholder="Ej: Desarrollo web">
+          <input class="form-input item-qty" type="number" min="1" value="1" oninput="calcSubtotal(this)">
+          <input class="form-input item-price" type="number" min="0" step="0.01" value="0" oninput="calcSubtotal(this)">
+          <input class="form-input item-subtotal" readonly value="$0.00">
+          <button class="remove-item" onclick="removeItem(this)">&times;</button>
+        </div>
+      </div>
+      <button class="add-item-btn" onclick="addItem()">+ Agregar Ítem</button>
+      <div class="total-row">
+        <span>Total:</span>
+        <span id="order-total">$0.00</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-new-order')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveOrder()">Crear Pedido</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DELIVERY DOC (HIDDEN, FOR PRINT) ========== -->
+<div class="delivery-doc" id="delivery-doc"></div>
+
+<!-- ========== TOAST ========== -->
+<div class="toast" id="toast">
+  <span class="toast-icon">✓</span>
+  <span id="toast-msg">Operación exitosa</span>
+</div>
+
+<script>
+// ─── DATA STORE ───
+let orders = [];
+let orderCounter = 0;
+let currentFilter = 'all';
+let currentOrderId = null;
+
+const stages = ['Pendiente', 'En Proceso', 'Producción', 'Control de Calidad', 'Listo', 'Entregado'];
+const stageProgress = { 'Pendiente': 0, 'En Proceso': 20, 'Producción': 45, 'Control de Calidad': 70, 'Listo': 90, 'Entregado': 100 };
+
+// ─── INIT WITH DEMO DATA ───
+function init() {
+  const demoOrders = [
+    { client: 'María García — Innovatech S.A.', type: 'Servicio', desc: 'Desarrollo de plataforma e-commerce', items: [{desc:'Diseño UI/UX',qty:1,price:1200},{desc:'Desarrollo Frontend',qty:1,price:2500},{desc:'Backend API',qty:1,price:3000}], stage: 3 },
+    { client: 'Roberto Fernández — LogiPro Corp.', type: 'Bien / Producto', desc: 'Equipos de red y servidores', items: [{desc:'Servidor Dell R740',qty:2,price:4500},{desc:'Switch Cisco 48p',qty:3,price:890},{desc:'Cable Cat6 (cajas)',qty:10,price:45}], stage: 4 },
+    { client: 'Ana Martínez — DigitalWave', type: 'Mixto', desc: 'Rediseño de marca y papelería', items: [{desc:'Diseño de Logo',qty:1,price:800},{desc:'Manual de marca',qty:1,price:600},{desc:'Tarjetas de presentación (millar)',qty:2,price:150}], stage: 1 },
+    { client: 'Luis Herrera — Grupo Meridian', type: 'Servicio', desc: 'Consultoría en ciberseguridad', items: [{desc:'Auditoría de seguridad',qty:1,price:3500},{desc:'Pentesting',qty:1,price:2800},{desc:'Reporte ejecutivo',qty:1,price:500}], stage: 5 },
+    { client: 'Carmen Ruiz — SolTech Solutions', type: 'Bien / Producto', desc: 'Licencias y equipamiento', items: [{desc:'Licencia Office 365',qty:25,price:120},{desc:'Laptop HP ProBook',qty:5,price:1200}], stage: 2 },
+  ];
+
+  demoOrders.forEach(d => {
+    orderCounter++;
+    const id = String(orderCounter).padStart(3, '0');
+    const total = d.items.reduce((s,i) => s + i.qty * i.price, 0);
+    const now = new Date();
+    const created = new Date(now.getTime() - Math.random() * 15 * 86400000);
+    
+    const history = [];
+    for (let i = 0; i <= d.stage && i < stages.length; i++) {
+      const t = new Date(created.getTime() + i * (Math.random() * 2 + 1) * 86400000);
+      history.push({ stage: stages[i], date: t });
+    }
+
+    orders.push({
+      id, client: d.client, type: d.type, desc: d.desc,
+      items: d.items, total,
+      status: stages[d.stage],
+      progress: stageProgress[stages[d.stage]],
+      created, history
+    });
+  });
+
+  refreshAll();
+}
+
+// ─── NAVIGATION ───
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const page = item.dataset.page;
+    if (page) navigateTo(page);
+  });
+});
+
+function navigateTo(page) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (navItem) navItem.classList.add('active');
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(`page-${page}`).classList.add('active');
+}
+
+// ─── REFRESH ───
+function refreshAll() {
+  updateStats();
+  renderDashboardTable();
+  renderOrdersTable();
+  renderClientsTable();
+}
+
+function updateStats() {
+  document.getElementById('stat-total').textContent = orders.length;
+  document.getElementById('stat-progress').textContent = orders.filter(o => ['En Proceso','Producción','Control de Calidad'].includes(o.status)).length;
+  document.getElementById('stat-ready').textContent = orders.filter(o => o.status === 'Listo').length;
+  const total = orders.reduce((s,o) => s + o.total, 0);
+  document.getElementById('stat-revenue').textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits:0});
+}
+
+function getBadgeClass(status) {
+  const map = { 'Pendiente':'badge-pending', 'En Proceso':'badge-progress', 'Producción':'badge-progress', 'Control de Calidad':'badge-progress', 'Listo':'badge-ready', 'Entregado':'badge-delivered', 'Cancelado':'badge-cancelled' };
+  return map[status] || 'badge-pending';
+}
+
+function getProgressColor(progress) {
+  if (progress >= 90) return 'var(--green)';
+  if (progress >= 40) return 'var(--blue)';
+  return 'var(--amber)';
+}
+
+function renderDashboardTable() {
+  const tbody = document.getElementById('orders-table-body');
+  const filtered = currentFilter === 'all' ? orders : orders.filter(o => o.status === currentFilter);
+
+  tbody.innerHTML = filtered.map(o => `
+    <tr>
+      <td><strong>#${o.id}</strong></td>
+      <td>${o.client.split(' — ')[0]}</td>
+      <td>${o.type}</td>
+      <td><strong>$${o.total.toLocaleString('en-US',{minimumFractionDigits:2})}</strong></td>
+      <td><span class="badge ${getBadgeClass(o.status)}">${o.status}</span></td>
+      <td style="min-width:120px">
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${o.progress}%;background:${getProgressColor(o.progress)}"></div>
+        </div>
+      </td>
+      <td>
+        <button class="action-btn action-view" onclick="viewOrder('${o.id}')">Ver</button>
+        ${o.status !== 'Entregado' ? `<button class="action-btn action-advance" style="margin-left:4px" onclick="quickAdvance('${o.id}')">▶</button>` : ''}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderOrdersTable() {
+  const tbody = document.getElementById('orders-full-table');
+  tbody.innerHTML = orders.map(o => `
+    <tr>
+      <td><strong>#${o.id}</strong></td>
+      <td>${o.client}</td>
+      <td>${o.type}</td>
+      <td>${o.items.length}</td>
+      <td><strong>$${o.total.toLocaleString('en-US',{minimumFractionDigits:2})}</strong></td>
+      <td><span class="badge ${getBadgeClass(o.status)}">${o.status}</span></td>
+      <td>${o.created.toLocaleDateString('es-ES')}</td>
+      <td>
+        <button class="action-btn action-view" onclick="viewOrder('${o.id}')">Detalle</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function renderClientsTable() {
+  const clients = {};
+  orders.forEach(o => {
+    const name = o.client;
+    if (!clients[name]) clients[name] = { count: 0 };
+    clients[name].count++;
+  });
+  const tbody = document.getElementById('clients-table');
+  const clientList = [
+    { name:'María García', company:'Innovatech S.A.', email:'maria@innovatech.com', phone:'+1 809 555 1234' },
+    { name:'Roberto Fernández', company:'LogiPro Corp.', email:'roberto@logipro.com', phone:'+1 809 555 5678' },
+    { name:'Ana Martínez', company:'DigitalWave', email:'ana@digitalwave.com', phone:'+1 809 555 9012' },
+    { name:'Luis Herrera', company:'Grupo Meridian', email:'luis@meridian.com', phone:'+1 809 555 3456' },
+    { name:'Carmen Ruiz', company:'SolTech Solutions', email:'carmen@soltech.com', phone:'+1 809 555 7890' },
+  ];
+  tbody.innerHTML = clientList.map(c => {
+    const count = orders.filter(o => o.client.includes(c.name)).length;
+    return `<tr>
+      <td><strong>${c.name}</strong><br><span style="font-size:.78rem;color:var(--text-muted)">${c.company}</span></td>
+      <td>${c.email}</td>
+      <td>${c.phone}</td>
+      <td>${count}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ─── FILTERS ───
+function filterOrders(status, btn) {
+  currentFilter = status;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderDashboardTable();
+}
+
+function searchOrders(q) {
+  const tbody = document.getElementById('orders-full-table');
+  const filtered = orders.filter(o =>
+    o.id.includes(q) || o.client.toLowerCase().includes(q.toLowerCase()) ||
+    o.desc.toLowerCase().includes(q.toLowerCase()) || o.status.toLowerCase().includes(q.toLowerCase())
+  );
+  tbody.innerHTML = filtered.map(o => `
+    <tr>
+      <td><strong>#${o.id}</strong></td>
+      <td>${o.client}</td>
+      <td>${o.type}</td>
+      <td>${o.items.length}</td>
+      <td><strong>$${o.total.toLocaleString('en-US',{minimumFractionDigits:2})}</strong></td>
+      <td><span class="badge ${getBadgeClass(o.status)}">${o.status}</span></td>
+      <td>${o.created.toLocaleDateString('es-ES')}</td>
+      <td><button class="action-btn action-view" onclick="viewOrder('${o.id}')">Detalle</button></td>
+    </tr>
+  `).join('');
+}
+
+// ─── NEW ORDER ───
+function openNewOrder() { document.getElementById('modal-new-order').classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+
+function addItem() {
+  const list = document.getElementById('items-list');
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML = `
+    <input class="form-input item-desc" placeholder="Descripción">
+    <input class="form-input item-qty" type="number" min="1" value="1" oninput="calcSubtotal(this)">
+    <input class="form-input item-price" type="number" min="0" step="0.01" value="0" oninput="calcSubtotal(this)">
+    <input class="form-input item-subtotal" readonly value="$0.00">
+    <button class="remove-item" onclick="removeItem(this)">&times;</button>
+  `;
+  list.appendChild(row);
+}
+
+function removeItem(btn) {
+  const list = document.getElementById('items-list');
+  if (list.children.length > 1) {
+    btn.parentElement.remove();
+    calcTotal();
+  }
+}
+
+function calcSubtotal(input) {
+  const row = input.parentElement;
+  const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+  const price = parseFloat(row.querySelector('.item-price').value) || 0;
+  row.querySelector('.item-subtotal').value = '$' + (qty * price).toFixed(2);
+  calcTotal();
+}
+
+function calcTotal() {
+  let total = 0;
+  document.querySelectorAll('#items-list .item-row').forEach(row => {
+    const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+    total += qty * price;
+  });
+  document.getElementById('order-total').textContent = '$' + total.toLocaleString('en-US',{minimumFractionDigits:2});
+}
+
+function saveOrder() {
+  const client = document.getElementById('order-client').value;
+  const type = document.getElementById('order-type').value;
+  const desc = document.getElementById('order-desc').value;
+
+  if (!client || !type) {
+    showToast('⚠ Completa cliente y tipo', false);
+    return;
+  }
+
+  const items = [];
+  document.querySelectorAll('#items-list .item-row').forEach(row => {
+    const d = row.querySelector('.item-desc').value;
+    const q = parseFloat(row.querySelector('.item-qty').value) || 0;
+    const p = parseFloat(row.querySelector('.item-price').value) || 0;
+    if (d && q > 0) items.push({ desc: d, qty: q, price: p });
+  });
+
+  if (items.length === 0) {
+    showToast('⚠ Agrega al menos un ítem', false);
+    return;
+  }
+
+  orderCounter++;
+  const id = String(orderCounter).padStart(3, '0');
+  const total = items.reduce((s,i) => s + i.qty * i.price, 0);
+  const now = new Date();
+
+  orders.unshift({
+    id, client, type, desc, items, total,
+    status: 'Pendiente', progress: 0,
+    created: now,
+    history: [{ stage: 'Pendiente', date: now }]
+  });
+
+  closeModal('modal-new-order');
+  resetOrderForm();
+  refreshAll();
+  showToast(`✓ Pedido #${id} creado exitosamente`);
+}
+
+function resetOrderForm() {
+  document.getElementById('order-client').value = '';
+  document.getElementById('order-type').value = '';
+  document.getElementById('order-desc').value = '';
+  document.getElementById('items-list').innerHTML = `
+    <div class="item-row">
+      <input class="form-input item-desc" placeholder="Ej: Desarrollo web">
+      <input class="form-input item-qty" type="number" min="1" value="1" oninput="calcSubtotal(this)">
+      <input class="form-input item-price" type="number" min="0" step="0.01" value="0" oninput="calcSubtotal(this)">
+      <input class="form-input item-subtotal" readonly value="$0.00">
+      <button class="remove-item" onclick="removeItem(this)">&times;</button>
+    </div>
+  `;
+  document.getElementById('order-total').textContent = '$0.00';
+}
+
+// ─── VIEW ORDER DETAIL ───
+function viewOrder(id) {
+  currentOrderId = id;
+  const order = orders.find(o => o.id === id);
+  if (!order) return;
+
+  document.getElementById('detail-title').textContent = `Pedido #${order.id}`;
+  document.getElementById('detail-subtitle').textContent = order.desc;
+
+  // Info
+  document.getElementById('detail-info').innerHTML = `
+    <div class="info-row"><span class="info-label">Cliente</span><span class="info-value">${order.client}</span></div>
+    <div class="info-row"><span class="info-label">Tipo</span><span class="info-value">${order.type}</span></div>
+    <div class="info-row"><span class="info-label">Estado</span><span class="info-value"><span class="badge ${getBadgeClass(order.status)}">${order.status}</span></span></div>
+    <div class="info-row"><span class="info-label">Fecha Creación</span><span class="info-value">${order.created.toLocaleDateString('es-ES', {year:'numeric',month:'long',day:'numeric'})}</span></div>
+    <div class="info-row"><span class="info-label">Progreso</span><span class="info-value">${order.progress}%</span></div>
+  `;
+
+  // Items
+  const itemsBody = document.getElementById('detail-items');
+  itemsBody.innerHTML = order.items.map(i => `
+    <tr>
+      <td style="padding:10px 0;border-bottom:1px solid var(--border);font-size:.85rem">${i.desc}</td>
+      <td style="padding:10px 0;border-bottom:1px solid var(--border);font-size:.85rem;text-align:center">${i.qty}</td>
+      <td style="padding:10px 0;border-bottom:1px solid var(--border);font-size:.85rem;text-align:right">$${i.price.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+      <td style="padding:10px 0;border-bottom:1px solid var(--border);font-size:.85rem;text-align:right;font-weight:600">$${(i.qty*i.price).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('detail-total').innerHTML = `<span>Total: <strong>$${order.total.toLocaleString('en-US',{minimumFractionDigits:2})}</strong></span>`;
+
+  // Timeline
+  const timeline = document.getElementById('detail-timeline');
+  const currentIdx = stages.indexOf(order.status);
+  timeline.innerHTML = stages.map((s, i) => {
+    let dotClass = 'pending';
+    let icon = '○';
+    if (i < currentIdx) { dotClass = 'done'; icon = '✓'; }
+    else if (i === currentIdx) { dotClass = 'current'; icon = '◉'; }
+
+    const histEntry = order.history.find(h => h.stage === s);
+    const dateStr = histEntry ? histEntry.date.toLocaleDateString('es-ES', {day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+
+    return `
+      <div class="timeline-item">
+        <div class="timeline-dot ${dotClass}">${icon}</div>
+        <div class="timeline-content">
+          <div class="timeline-title">${s}</div>
+          <div class="timeline-desc">${getStageDesc(s)}</div>
+          <div class="timeline-date">${i <= currentIdx ? dateStr : 'Pendiente'}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Buttons
+  const btnAdvance = document.getElementById('btn-advance');
+  const btnDelivery = document.getElementById('btn-delivery');
+  if (order.status === 'Entregado') {
+    btnAdvance.style.display = 'none';
+    btnDelivery.style.display = 'none';
+  } else if (order.status === 'Listo') {
+    btnAdvance.style.display = 'none';
+    btnDelivery.style.display = 'inline-flex';
+  } else {
+    btnAdvance.style.display = 'inline-flex';
+    btnDelivery.style.display = 'none';
+  }
+
+  navigateTo('detail');
+}
+
+function getStageDesc(stage) {
+  const descs = {
+    'Pendiente': 'Pedido registrado, pendiente de asignación',
+    'En Proceso': 'Pedido asignado y en preparación',
+    'Producción': 'En fase de producción o ejecución',
+    'Control de Calidad': 'Revisión y control de calidad',
+    'Listo': 'Listo para entrega al cliente',
+    'Entregado': 'Pedido entregado satisfactoriamente'
+  };
+  return descs[stage] || '';
+}
+
+// ─── ADVANCE ORDER ───
+function advanceOrder() {
+  const order = orders.find(o => o.id === currentOrderId);
+  if (!order) return;
+  const idx = stages.indexOf(order.status);
+  if (idx < stages.length - 1) {
+    const next = stages[idx + 1];
+    order.status = next;
+    order.progress = stageProgress[next];
+    order.history.push({ stage: next, date: new Date() });
+    refreshAll();
+    viewOrder(order.id);
+    showToast(`✓ Pedido #${order.id} avanzado a "${next}"`);
+  }
+}
+
+function quickAdvance(id) {
+  const order = orders.find(o => o.id === id);
+  if (!order) return;
+  const idx = stages.indexOf(order.status);
+  if (idx < stages.length - 1) {
+    const next = stages[idx + 1];
+    order.status = next;
+    order.progress = stageProgress[next];
+    order.history.push({ stage: next, date: new Date() });
+    refreshAll();
+    showToast(`✓ #${order.id} → "${next}"`);
+  }
+}
+
+// ─── GENERATE DELIVERY DOCUMENT ───
+function generateDeliveryDoc() {
+  const order = orders.find(o => o.id === currentOrderId);
+  if (!order) return;
+
+  // Advance to delivered
+  order.status = 'Entregado';
+  order.progress = 100;
+  order.history.push({ stage: 'Entregado', date: new Date() });
+
+  const docNum = `ENT-${new Date().getFullYear()}-${order.id}`;
+  const now = new Date();
+
+  const docHTML = `
+    <div style="font-family:'DM Sans',sans-serif; background:#fff; color:#1a1a2e; padding:48px; max-width:800px; margin:0 auto;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:36px; padding-bottom:24px; border-bottom:3px solid #6366f1;">
+        <div>
+          <div style="font-family:'Playfair Display',serif; font-size:1.6rem; color:#6366f1;">OrderFlow</div>
+          <div style="font-size:.8rem; color:#666; margin-top:4px;">Documento de Entrega</div>
+        </div>
+        <div style="text-align:right;">
+          <strong style="font-size:1.1rem; display:block;">${docNum}</strong>
+          <span style="font-size:.82rem; color:#666;">Fecha: ${now.toLocaleDateString('es-ES', {year:'numeric',month:'long',day:'numeric'})}</span>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-bottom:32px;">
+        <div>
+          <h4 style="font-size:.72rem; text-transform:uppercase; letter-spacing:1px; color:#6366f1; margin-bottom:8px;">Proveedor</h4>
+          <p style="font-size:.85rem; line-height:1.6; color:#444;">
+            <strong>OrderFlow Services</strong><br>
+            Av. Principal #123, Torre Empresarial<br>
+            Santo Domingo, República Dominicana<br>
+            RNC: 130-12345-6
+          </p>
+        </div>
+        <div>
+          <h4 style="font-size:.72rem; text-transform:uppercase; letter-spacing:1px; color:#6366f1; margin-bottom:8px;">Cliente</h4>
+          <p style="font-size:.85rem; line-height:1.6; color:#444;">
+            <strong>${order.client.split(' — ')[0]}</strong><br>
+            ${order.client.split(' — ')[1] || ''}<br>
+            Pedido: #${order.id}<br>
+            Tipo: ${order.type}
+          </p>
+        </div>
+      </div>
+
+      <table style="width:100%; border-collapse:collapse; margin-bottom:24px;">
+        <thead>
+          <tr>
+            <th style="background:#f0f0ff; padding:12px 16px; text-align:left; font-size:.75rem; text-transform:uppercase; letter-spacing:1px; color:#6366f1; border-bottom:2px solid #e0e0f0;">#</th>
+            <th style="background:#f0f0ff; padding:12px 16px; text-align:left; font-size:.75rem; text-transform:uppercase; letter-spacing:1px; color:#6366f1; border-bottom:2px solid #e0e0f0;">Descripción</th>
+            <th style="background:#f0f0ff; padding:12px 16px; text-align:center; font-size:.75rem; text-transform:uppercase; letter-spacing:1px; color:#6366f1; border-bottom:2px solid #e0e0f0;">Cantidad</th>
+            <th style="background:#f0f0ff; padding:12px 16px; text-align:right; font-size:.75rem; text-transform:uppercase; letter-spacing:1px; color:#6366f1; border-bottom:2px solid #e0e0f0;">P. Unitario</th>
+            <th style="background:#f0f0ff; padding:12px 16px; text-align:right; font-size:.75rem; text-transform:uppercase; letter-spacing:1px; color:#6366f1; border-bottom:2px solid #e0e0f0;">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${order.items.map((item, idx) => `
+            <tr>
+              <td style="padding:12px 16px; font-size:.85rem; border-bottom:1px solid #eee; color:#333;">${idx+1}</td>
+              <td style="padding:12px 16px; font-size:.85rem; border-bottom:1px solid #eee; color:#333;">${item.desc}</td>
+              <td style="padding:12px 16px; font-size:.85rem; border-bottom:1px solid #eee; color:#333; text-align:center;">${item.qty}</td>
+              <td style="padding:12px 16px; font-size:.85rem; border-bottom:1px solid #eee; color:#333; text-align:right;">$${item.price.toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+              <td style="padding:12px 16px; font-size:.85rem; border-bottom:1px solid #eee; color:#333; text-align:right; font-weight:600;">$${(item.qty*item.price).toLocaleString('en-US',{minimumFractionDigits:2})}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+
+      <div style="text-align:right; margin-bottom:32px;">
+        <span style="font-size:.85rem; color:#666;">Subtotal: $${order.total.toLocaleString('en-US',{minimumFractionDigits:2})}</span><br>
+        <span style="font-size:.85rem; color:#666;">ITBIS (18%): $${(order.total * 0.18).toLocaleString('en-US',{minimumFractionDigits:2})}</span><br>
+        <strong style="font-size:1.2rem; color:#1a1a2e;">Total: $${(order.total * 1.18).toLocaleString('en-US',{minimumFractionDigits:2})}</strong>
+      </div>
+
+      <div style="background:#f8f8ff; border-radius:8px; padding:16px 20px; margin-bottom:40px; font-size:.82rem; color:#555; border-left:4px solid #6366f1;">
+        <strong>Descripción:</strong> ${order.desc}<br><br>
+        <strong>Nota:</strong> Al firmar este documento, el cliente confirma haber recibido los bienes y/o servicios descritos en condiciones satisfactorias.
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:48px; margin-top:60px; padding-top:24px;">
+        <div style="border-top:1px solid #ccc; padding-top:10px; text-align:center;">
+          <p style="font-size:.82rem; color:#666;">Entregado por</p>
+          <strong style="font-size:.85rem; color:#333; display:block; margin-top:4px;">Carlos Méndez</strong>
+          <span style="font-size:.75rem; color:#999;">OrderFlow Services</span>
+        </div>
+        <div style="border-top:1px solid #ccc; padding-top:10px; text-align:center;">
+          <p style="font-size:.82rem; color:#666;">Recibido por</p>
+          <strong style="font-size:.85rem; color:#333; display:block; margin-top:4px;">${order.client.split(' — ')[0]}</strong>
+          <span style="font-size:.75rem; color:#999;">${order.client.split(' — ')[1] || ''}</span>
+        </div>
+      </div>
+
+      <div style="text-align:center; margin-top:40px; padding-top:20px; border-top:1px solid #eee; font-size:.72rem; color:#999;">
+        Documento generado automáticamente por OrderFlow · ${now.toLocaleDateString('es-ES')} ${now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'})} · ${docNum}
+      </div>
+    </div>
+  `;
+
+  // Open in new window for printing
+  const printWin = window.open('', '_blank', 'width=850,height=1100');
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Documento de Entrega - ${docNum}</title>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+      <style>
+        @media print { body { margin: 0; } @page { margin: 1cm; } }
+        body { margin: 0; padding: 0; }
+      </style>
+    </head>
+    <body>${docHTML}</body>
+    </html>
+  `);
+  printWin.document.close();
+  setTimeout(() => printWin.print(), 600);
+
+  refreshAll();
+  viewOrder(order.id);
+  showToast(`✓ Documento de entrega ${docNum} generado`);
+}
+
+// ─── TOAST ───
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// ─── INIT ───
+init();
+</script>
+</body>
+</html>
