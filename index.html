@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prototipo · Gestión de Pedidos</title>
+  <style>
+    :root{--bg:#0b1020;--card:#111831;--card2:#1a2345;--text:#eaf0ff;--muted:#9fb0d9;--pri:#5f8cff;--ok:#2cc68f;--warn:#ffb020;--bd:#2b3765}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1150px;margin:auto;padding:20px;display:grid;gap:14px}
+    .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--bd);border-radius:12px;padding:14px}
+    .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .muted{color:var(--muted);font-size:.9rem} h1,h2{margin:.2rem 0}
+    .stats{display:grid;grid-template-columns:repeat(4,minmax(140px,1fr));gap:10px}
+    .s{padding:10px;border:1px solid var(--bd);border-radius:10px;background:#0f1734}
+    .grid{display:grid;grid-template-columns:1fr 1.8fr;gap:14px}
+    form{display:grid;gap:9px}.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+    input,select{width:100%;background:#0a1330;color:var(--text);border:1px solid var(--bd);border-radius:9px;padding:10px}
+    button{border:0;border-radius:9px;padding:9px 12px;cursor:pointer;font-weight:700}
+    .b1{background:var(--pri);color:#fff}.b2{background:var(--ok);color:#053628}.b3{background:transparent;border:1px solid var(--bd);color:var(--text)}
+    table{width:100%;border-collapse:collapse;font-size:.9rem} th,td{border-bottom:1px solid var(--bd);padding:8px;text-align:left}
+    th{color:var(--muted)} .actions{display:flex;gap:6px;flex-wrap:wrap}
+    .badge{padding:3px 8px;border-radius:999px;font-size:.75rem;font-weight:700}
+    .st0{background:#223263;color:#bed1ff}.st1{background:#27431f;color:#b8f1a3}.st2{background:#4a350a;color:#ffe1a8}.st3{background:#0a4a35;color:#b2ffe5}.st4{background:#4f1b31;color:#ffc2d5}
+    @media(max-width:980px){.grid{grid-template-columns:1fr}.row{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,minmax(120px,1fr))}}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card top">
+    <div><h1>Dashboard de Pedidos</h1><div class="muted">Bienes/Servicios · Registrado → Aprobado → En proceso → Listo → Entregado</div></div>
+    <div class="muted">Usuario actual: <b id="u">Operador General</b></div>
+  </div>
+  <div class="card stats" id="stats"></div>
+  <div class="grid">
+    <div class="card">
+      <h2>Registrar pedido</h2>
+      <form id="f">
+        <div><label class="muted">Usuario</label><input name="user" required placeholder="Ej: María"/></div>
+        <div class="row">
+          <div><label class="muted">Tipo</label><select name="type"><option>Bien</option><option>Servicio</option></select></div>
+          <div><label class="muted">Cantidad</label><input name="qty" type="number" min="1" value="1" required/></div>
+        </div>
+        <div><label class="muted">Descripción</label><input name="desc" required placeholder="Detalle del pedido"/></div>
+        <div class="row">
+          <div><label class="muted">Monto unitario (DOP)</label><input name="unit" type="number" min="0" step="0.01" value="0" required/></div>
+          <div><label class="muted">Etapa inicial</label><select name="stage"><option>Registrado</option><option>Aprobado</option><option>En proceso</option><option>Listo</option><option>Entregado</option></select></div>
+        </div>
+        <button class="b1" type="submit">+ Registrar</button>
+      </form>
+    </div>
+    <div class="card">
+      <h2>Pedidos</h2>
+      <table><thead><tr><th>ID</th><th>Usuario</th><th>Tipo</th><th>Descripción</th><th>Cant.</th><th>Unit.</th><th>Total</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="tb"></tbody></table>
+    </div>
+  </div>
+</div>
+<script>
+const S=["Registrado","Aprobado","En proceso","Listo","Entregado"]; let id=4;
+const data=[{id:1,user:"Carlos",type:"Bien",desc:"Impresora",qty:1,unit:14500,stage:"Aprobado"},{id:2,user:"Ana",type:"Servicio",desc:"Cableado",qty:2,unit:8500,stage:"En proceso"},{id:3,user:"Miguel",type:"Bien",desc:"Sillas",qty:4,unit:6200,stage:"Listo"}];
+const money=new Intl.NumberFormat('es-DO',{style:'currency',currency:'DOP'});
+const cls=s=>({"Registrado":"st0","Aprobado":"st1","En proceso":"st2","Listo":"st3","Entregado":"st4"}[s]||"st0");
+const next=s=>S[Math.min(S.indexOf(s)+1,S.length-1)];
+function stats(){const total=data.reduce((a,o)=>a+o.qty*o.unit,0),gest=data.filter(o=>["Aprobado","En proceso"].includes(o.stage)).length,listo=data.filter(o=>o.stage==="Listo").length;
+document.getElementById('stats').innerHTML=`<div class=s><div class=muted>Total pedidos</div><b>${data.length}</b></div><div class=s><div class=muted>Monto acumulado</div><b>${money.format(total)}</b></div><div class=s><div class=muted>En gestión</div><b>${gest}</b></div><div class=s><div class=muted>Listos para entrega</div><b>${listo}</b></div>`;}
+function delivery(o){const t=o.qty*o.unit;const d=new Date().toLocaleString('es-DO');const html=`<!doctype html><html><head><meta charset=utf-8><title>Entrega #${o.id}</title><style>body{font-family:Arial;padding:22px}td{border:1px solid #ddd;padding:8px}table{border-collapse:collapse;width:100%}.sig{margin-top:45px;display:flex;gap:40px}.ln{border-top:1px solid #000;padding-top:6px;width:220px}</style></head><body><h2>Comprobante de Entrega</h2><p>Fecha: ${d}</p><table><tr><td>ID</td><td>#${o.id}</td></tr><tr><td>Usuario</td><td>${o.user}</td></tr><tr><td>Tipo</td><td>${o.type}</td></tr><tr><td>Descripción</td><td>${o.desc}</td></tr><tr><td>Cantidad</td><td>${o.qty}</td></tr><tr><td>Monto unitario</td><td>${money.format(o.unit)}</td></tr><tr><td>Total</td><td>${money.format(t)}</td></tr><tr><td>Estado</td><td>${o.stage}</td></tr></table><div class=sig><div class=ln>Entregado por</div><div class=ln>Recibido por</div></div><script>window.print()<\/script></body></html>`;const w=window.open('','_blank');w.document.write(html);w.document.close();}
+function table(){const tb=document.getElementById('tb');tb.innerHTML='';data.forEach(o=>{const tr=document.createElement('tr');const t=o.qty*o.unit;const canDoc=(o.stage==="Listo"||o.stage==="Entregado");tr.innerHTML=`<td>#${o.id}</td><td>${o.user}</td><td>${o.type}</td><td>${o.desc}</td><td>${o.qty}</td><td>${money.format(o.unit)}</td><td><b>${money.format(t)}</b></td><td><span class="badge ${cls(o.stage)}">${o.stage}</span></td><td><div class=actions><button class=b3 data-a=adv data-id=${o.id} ${o.stage==="Entregado"?'disabled':''}>Avanzar</button><button class=b2 data-a=doc data-id=${o.id} ${!canDoc?'disabled':''}>Generar entrega</button></div></td>`;tb.appendChild(tr);});}
+document.getElementById('f').addEventListener('submit',e=>{e.preventDefault();const fd=new FormData(e.target);const o={id:id++,user:String(fd.get('user')).trim(),type:String(fd.get('type')),desc:String(fd.get('desc')).trim(),qty:Number(fd.get('qty')),unit:Number(fd.get('unit')),stage:String(fd.get('stage'))};if(!o.user||!o.desc||o.qty<=0||o.unit<0)return alert('Completa los campos correctamente');data.unshift(o);e.target.reset();stats();table();});
+document.getElementById('tb').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const o=data.find(x=>x.id===Number(b.dataset.id));if(!o)return;if(b.dataset.a==='adv')o.stage=next(o.stage);if(b.dataset.a==='doc'){if(o.stage==='Listo')o.stage='Entregado';delivery(o);}stats();table();});
+stats();table();
+</script>
+</body></html>
