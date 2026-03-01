@@ -101,6 +101,29 @@ body {
 /* ─── MAIN ─── */
 .main { margin-left: 260px; flex: 1; padding: 32px 36px; }
 
+.mobile-topbar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.mobile-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.mobile-menu-btn svg { width: 18px; height: 18px; }
+
 .page { display: none; }
 .page.active { display: block; animation: fadeUp .4s ease; }
 
@@ -484,10 +507,23 @@ tbody tr:last-child td { border-bottom: none; }
   .sidebar { transform: translateX(-100%); }
   .sidebar.open { transform: translateX(0); }
   .main { margin-left: 0; padding: 24px 18px; }
+  .mobile-topbar { display: flex; }
   .detail-grid { grid-template-columns: 1fr; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .modal { width: 95%; margin: 0 10px; }
   .item-row { grid-template-columns: 2fr 1fr 1fr 1fr 36px; font-size: .78rem; }
+  .table-wrap { overflow-x: auto; }
+  table { min-width: 780px; }
+  .filter-tabs { overflow-x: auto; white-space: nowrap; padding-bottom: 4px; }
+}
+
+@media (max-width: 640px) {
+  .page-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .item-row { grid-template-columns: 1fr 1fr; }
+  .item-row .remove-item { width: 100%; }
+  .doc-parties, .doc-signatures { grid-template-columns: 1fr; }
 }
 </style>
 </head>
@@ -530,6 +566,12 @@ tbody tr:last-child td { border-bottom: none; }
 
   <!-- MAIN CONTENT -->
   <main class="main">
+    <div class="mobile-topbar">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Abrir menú">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="muted">OrderFlow · Menú</div>
+    </div>
 
     <!-- ========== DASHBOARD ========== -->
     <div class="page active" id="page-dashboard">
@@ -881,6 +923,14 @@ function navigateTo(page) {
   if (navItem) navItem.classList.add('active');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(`page-${page}`).classList.add('active');
+
+  if (window.innerWidth <= 860) {
+    document.getElementById('sidebar').classList.remove('open');
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
 }
 
 // ─── REFRESH ───
